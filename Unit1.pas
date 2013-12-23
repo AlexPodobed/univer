@@ -1,0 +1,240 @@
+unit Unit1;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, Menus, ExtCtrls, StdCtrls, Math;
+type
+  mkoord = array[1..100, 1..100, 1..3] of real;
+  mmatr = array[1..3, 1..3] of real;
+type
+  TForm1 = class(TForm)
+    MainMenu1: TMainMenu;
+    N1: TMenuItem;
+    N2: TMenuItem;
+    N3: TMenuItem;
+    N4: TMenuItem;
+    N5: TMenuItem;
+    Memo1: TMemo;
+    Timer1: TTimer;
+    procedure FormCreate(Sender: TObject);
+    procedure N3Click(Sender: TObject);
+    procedure Timer1Timer(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  Form1: TForm1;
+  npl: integer;
+  nsput: array[1..100]of integer;
+  e,hp,ii,om,Tob,p,Rz,rp,a,mu, omz, gamz, xps, yps, zps, fis, lams, gamgr: real;
+  Ttek,Tbeg,Tend,dt:real;
+  mbom: array[1..100]of real;
+  mtau, ee, gam: array[1..100,1..100]of real;
+  korb, kekv, kgr, ktp: mkoord;
+  mekv, mgr,mtp: mmatr;
+
+implementation
+
+{$R *.dfm}
+
+procedure TForm1.FormCreate(Sender: TObject);
+var shbom,sht,sm:real;
+    i,j:integer;
+begin
+npl:=7;
+nsput[1]:= 7;
+nsput[2]:= 7;
+nsput[3]:= 7;
+nsput[4]:= 7;
+nsput[5]:= 7;
+nsput[6]:= 7;
+nsput[7]:= 7;
+
+e:= 0.01;
+hp:= 800;
+Rz:= 6400;
+ii:= 68.3*pi/180;
+om:= -90*pi/180;
+timer1.Enabled:=false;
+fis:= 45*pi/180;
+lams:= 50*pi/180;
+gamgr:= 10*pi/180;
+Tbeg:= 0;
+Tend:= 3*60*60;
+dt:=60;
+mu:= 398600.5 ;
+omz:= 2*pi/(24*3600);
+shbom:=pi/npl;
+
+for i:=1 to npl do
+mbom[i]:= shbom*(i-1);
+p:= (1+e)*(Rz+hp);
+a:= p/(1-e*e);
+Tob:=sqrt(mu/(a*a*a));
+
+sht:= Tob/nsput[1];
+sm:=sht/npl;
+
+for i:=1 to npl do
+  for j:=1 to nsput[i] do
+    mtau[i,j]:= sht*(j-1)+sm*(i-1);
+
+end;
+
+procedure TForm1.N3Click(Sender: TObject);
+var nompl, nomsp: integer;
+begin
+Ttek:=Tbeg;
+
+for nompl:=1 to npl do
+  for nomsp:=1 to nsput[nompl] do
+      ee[nompl, nomsp]:= 0;
+
+xps:= rz*cos(fis)*cos(lams);
+yps:= rz*cos(fis)*sin(lams);
+zps:= rz*sin(fis);     
+
+mtp[1,1]:= -sin(fis)*cos(lams);
+mtp[1,2]:= sin(fis)*sin(lams);
+mtp[1,3]:= cos(fis);
+mtp[2,1]:= cos(fis)*cos(lams);
+mtp[2,2]:= cos(fis)*sin(lams);
+mtp[2,3]:= sin(lams);
+mtp[3,1]:= -sin(lams);
+mtp[3,2]:= cos(lams);
+mtp[3,3]:= 0;
+
+timer1.Enabled:=true;
+end;
+
+//RASEE
+procedure rasee(a,e,tau,t,een:real; var ee:real);
+begin
+  ee:= sqrt(mu/(a*a*a))*(t-tau)+e*sin(een);
+  while (abs(ee-een)>0.0001) do
+  begin
+    een := ee;
+    ee:= sqrt(mu/(a*a*a))*(t-tau)+e*sin(een);
+  end;
+end;
+
+procedure umnmatr(A,B:mmatr; n1,m1,n2,m2:integer; var C:mmatr);
+var i,j,k:integer;
+begin
+  for i:=1 to n1 do
+    for j:=1 to m2 do
+    begin
+      C[i,j]:=0;
+      for k:=1 to m1 do
+        C[i,j]:= C[i,j] + A[i,k]*B[k,j];
+    end;
+end;
+
+
+procedure TForm1.Timer1Timer(Sender: TObject);
+var nompl, nomsp: integer;
+    tau, r, tet, bom, gaml, gampr:real;
+    kpr: mmatr;
+begin
+Ttek:=Ttek+dt;
+gamz:= omz*(Ttek - Tbeg);
+
+//memo1.Lines.Add('Ttek = '+floattostr(Ttek));
+
+for nompl:=1 to npl do
+begin
+
+  bom:= mbom[nompl];
+
+  gaml:= gam[nompl, nomsp];
+
+  mekv[1,1]:= cos(bom)*cos(om)*cos(ii) - sin(bom)*sin(om)*cos(ii);
+  mekv[1,2]:= -sin(om)*cos(bom) - sin(bom)*cos(om)*cos(ii);
+  mekv[1,3]:= sin(bom)*sin(ii);
+  mekv[2,1]:= sin(bom)*cos(om) + cos(bom)*sin(om)*cos(ii);
+  mekv[2,2]:= cos(om)*cos(bom)*cos(ii) - sin(bom)*sin(om);
+  mekv[2,3]:= -cos(bom)*sin(ii);
+  mekv[3,1]:= sin(om)*sin(ii);
+  mekv[3,2]:= cos(om)*sin(ii);
+  mekv[3,3]:= cos(ii);
+
+  mgr[1,1]:= cos(gamz);
+  mgr[1,2]:= sin(gamz);
+  mgr[1,3]:= 0;
+  mgr[2,1]:= -sin(gamz);
+  mgr[2,2]:= cos(gamz);
+  mgr[2,3]:= 0;
+  mgr[3,1]:= 0;
+  mgr[3,2]:= 0;
+  mgr[3,3]:= 1;
+
+  for nomsp:=1 to nsput[nompl] do
+    begin
+      tau:= mtau[nompl, nomsp];
+
+      rasee(a,e,tau,ttek,ee[nompl, nomsp], ee[nompl, nomsp]);
+
+      tet := 2*arctan(sqrt((1+e)/(1-e))*tan(ee[nompl, nomsp]/2));
+
+      memo1.Lines.Add('EE = ' + floattostr(ee[nompl, nomsp]*180/PI) +
+      '  tet = ' + floattostr(tet*180/PI));
+
+      r:= p/(1+e*cos(tet));
+
+      kpr[1,1]:= r*cos(tet);
+      kpr[2,1]:= r*sin(tet);
+      kpr[3,1]:= 0;
+
+      korb[nompl, nomsp, 1]:= kpr[1,1];
+      korb[nompl, nomsp, 2]:= kpr[2,1];
+      korb[nompl, nomsp, 3]:= kpr[3,1];
+
+      umnmatr(mekv,kpr, 3,3,3,1, kpr);
+
+      kekv[nompl, nomsp, 1]:= kpr[1,1];
+      kekv[nompl, nomsp, 2]:= kpr[2,1];
+      kekv[nompl, nomsp, 3]:= kpr[3,1];
+
+      umnmatr(mgr,kpr, 3,3,3,1, kpr);
+      kgr[nompl, nomsp, 1]:= kpr[1,1];
+      kgr[nompl, nomsp, 2]:= kpr[2,1];
+      kgr[nompl, nomsp, 3]:= kpr[3,1];
+
+
+      kpr[1,1]:= kpr[1,1] - xps;
+      kpr[2,1]:= kpr[2,1] - yps;
+      kpr[3,1]:= kpr[3,1] - zps;
+
+      umnmatr(mtp,kpr, 3,3,3,1, kpr);
+      ktp[nompl, nomsp, 1]:= kpr[1,1];
+      ktp[nompl, nomsp, 2]:= kpr[2,1];
+      ktp[nompl, nomsp, 3]:= kpr[3,1];
+
+      if ktp[nompl, nomsp, 2] > 0 then
+        gampr:= sqrt(sqr(ktp[nompl, nomsp, 1])+sqr(ktp[nompl, nomsp, 3]))/
+                sqrt(sqr(ktp[nompl, nomsp, 1]) + sqr(ktp[nompl, nomsp, 2]) + sqr(ktp[nompl, nomsp, 3]))
+      else   gampr:= 0;
+
+      if(gampr > gamgr) then
+      gam[nompl, nomsp]:= gampr
+      else gam[nompl, nomsp]:= 0;
+
+
+
+    end;
+
+end;
+
+
+if Ttek >= Tend then
+begin
+timer1.Enabled:=false;
+end;
+end;
+
+end.
